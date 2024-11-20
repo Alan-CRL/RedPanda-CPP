@@ -35,8 +35,8 @@
 #include <sys/sysinfo.h>
 #endif
 #ifdef ENABLE_LUA_ADDON
-# include "addon/executor.h"
-# include "addon/runtime.h"
+# include "addon/luaexecutor.h"
+# include "addon/luaruntime.h"
 #endif
 
 const char ValueToChar[28] = {'0', '1', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
@@ -3024,6 +3024,24 @@ void Settings::CompilerSet::setDebugServer(const QString &newDebugServer)
     mDebugServer = newDebugServer;
 }
 
+QStringList Settings::CompilerSet::findErrors()
+{
+    QStringList errors;
+    if (!mCCompiler.isEmpty() && !fileExists(mCCompiler)) {
+        errors.append(QObject::tr("C Compiler \"%1\" is missing!").arg(mCCompiler));
+    }
+    if (!mCppCompiler.isEmpty() && !fileExists(mCppCompiler)) {
+        errors.append(QObject::tr("C++ Compiler \"%1\" is missing!").arg(mCppCompiler));
+    }
+    if (!mDebugger.isEmpty() && !fileExists(mDebugger)) {
+        errors.append(QObject::tr("Debugger \"%1\" is missing!").arg(mDebugger));
+    }
+    if (!mMake.isEmpty() && !fileExists(mMake)) {
+        errors.append(QObject::tr("Make program \"%1\" is missing!").arg(mMake));
+    }
+    return errors;
+}
+
 void Settings::CompilerSet::setCompilerType(CompilerType newCompilerType)
 {
     mCompilerType = newCompilerType;
@@ -3240,7 +3258,7 @@ void Settings::CompilerSets::findSets()
     ) {
         QByteArray script = scriptFile.readAll();
         try {
-            compilerHint = AddOn::CompilerHintExecutor{}(script);
+            compilerHint = AddOn::Lua::CompilerHintExecutor{}(script);
         } catch (const AddOn::LuaError &e) {
             QMessageBox::critical(nullptr,
                                   QObject::tr("Error executing platform compiler hint add-on"),
@@ -3394,6 +3412,14 @@ void Settings::CompilerSets::loadSets()
             return;
         }
         findSets();
+        if (size()==0) {
+            QMessageBox::warning(
+                nullptr,
+                QObject::tr("No Compiler Set"),
+                QObject::tr("Can't find a C/C++ compiler.")
+                    +"<br/>"
+                    +QObject::tr("You must have a compiler to compile and execute C/C++ files."));
+        }
         pCurrentSet = defaultSet();
         if (!pCurrentSet) {
             mList.clear();
@@ -3402,6 +3428,7 @@ void Settings::CompilerSets::loadSets()
             return;
         }
         saveSets();
+
     }
 
 }
@@ -4408,10 +4435,6 @@ void Settings::Executor::doLoad()
     mCaseMemoryLimit = uintValue("case_memory_limit",0); // kb
 
     mEnableCaseLimit = boolValue("enable_case_limit", true);
-    //compatibility
-    if (boolValue("enable_time_limit", true)) {
-        mEnableCaseLimit=true;
-    }
 
     mMaxCaseInputFileSize = uintValue("case_max_input_file_size", 4); //4mb
 }

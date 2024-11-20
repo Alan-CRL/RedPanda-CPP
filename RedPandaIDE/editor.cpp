@@ -844,13 +844,9 @@ void Editor::keyPressEvent(QKeyEvent *event)
                     if (mParser)
                         function = mParser->findFunctionAt(mFilename,caretY()+1);
                     if (function) {
-                        QStringList params;
                         QString funcName = function->command;
                         bool isVoid = (function->type  == "void");
-                        foreach (const PStatement& child, function->children) {
-                            if (child->kind == StatementKind::Parameter)
-                                params.append(child->command);
-                        }
+                        QStringList params = mParser->getFunctionParameterNames(function);
                         insertString.append(QString(" * @brief ")+USER_CODE_IN_INSERT_POS);
                         if (!params.isEmpty())
                             insertString.append(" * ");
@@ -3359,10 +3355,6 @@ void Editor::insertCodeSnippet(const QString &code)
 
     QSynedit::BufferCoord cursorPos = caretXY();
     QString s = linesToText(newSl);
-//        if EndsStr(#13#10,s) then
-//          Delete(s,Length(s)-1,2)
-//        else if EndsStr(#10, s) then
-//          Delete(s,Length(s),1);
     setSelText(s);
     if (mUserCodeInTabStops.count()>0) {
         setCaretXY(cursorPos); //restore cursor pos before insert
@@ -4454,7 +4446,7 @@ void Editor::updateFunctionTip(bool showTip)
         p.setX(clientWidth()-w-2);
     pMainWindow->functionTip()->move(mapToGlobal(p));
     cancelHint();
-    if (showTip)
+    if (showTip && hasFocus() && !mCompletionPopup->isVisible() && !mHeaderCompletionPopup->isVisible())
         pMainWindow->functionTip()->show();
 }
 

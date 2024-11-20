@@ -187,8 +187,13 @@ void CompilerSetOptionWidget::doLoad()
         ui->btnRemoveCompilerSet->setEnabled(true);
     }
     int index=pSettings->compilerSets().defaultIndex();
+    QIcon icon = pIconsManager->getIcon(IconsManager::ACTION_MISC_CROSS);
     for (size_t i=0;i<pSettings->compilerSets().size();i++) {
-        ui->cbCompilerSet->addItem(pSettings->compilerSets().getSet(i)->name());
+        Settings::PCompilerSet set = pSettings->compilerSets().getSet(i);
+        if (set->findErrors().isEmpty())
+            ui->cbCompilerSet->addItem(set->name());
+        else
+            ui->cbCompilerSet->addItem(icon, set->name());
     }
     if (index < 0 || index>=ui->cbCompilerSet->count()) {
         index = 0;
@@ -206,6 +211,15 @@ void CompilerSetOptionWidget::doSave()
     pSettings->compilerSets().setDefaultIndex(pSettings->compilerSets().defaultIndex());
     pSettings->compilerSets().saveSets();
     pMainWindow->updateCompilerSet();
+
+    Settings::PCompilerSet set = pSettings->compilerSets().defaultSet();
+    if (set) {
+        int idx = pSettings->compilerSets().defaultIndex();
+        if (set->findErrors().isEmpty())
+            ui->cbCompilerSet->setItemIcon(idx, QIcon());
+        else
+            ui->cbCompilerSet->setItemIcon(idx, pIconsManager->getIcon(IconsManager::ACTION_MISC_CROSS));
+    }
 }
 
 void CompilerSetOptionWidget::on_cbCompilerSet_currentIndexChanged(int index)
@@ -333,6 +347,9 @@ void CompilerSetOptionWidget::on_btnFindCompilers_clicked()
 void CompilerSetOptionWidget::on_btnAddBlankCompilerSet_clicked()
 {
     QString name = QInputDialog::getText(this,tr("Compiler Set Name"),tr("Name"));
+    name = name.trimmed();
+    if (name.isEmpty())
+        return;
     Settings::PCompilerSet set = pSettings->compilerSets().addSet();
     pSettings->compilerSets().setDefaultIndex(pSettings->compilerSets().size()-1);
     set->setName(name);
@@ -355,6 +372,23 @@ void CompilerSetOptionWidget::on_btnAddCompilerSetByFolder_clicked()
     }
 }
 
+void CompilerSetOptionWidget::on_btnCopyCompilerSet_clicked()
+{
+    Settings::PCompilerSet set=pSettings->compilerSets().getSet(ui->cbCompilerSet->currentIndex());
+    if (!set)
+        return;
+    QString name = QInputDialog::getText(this,tr("Compiler Set Name"),tr("New name"),QLineEdit::Normal,
+                                         tr("%1 Copy").arg(set->name()));
+    name = name.trimmed();
+    if (!name.isEmpty()) {
+        Settings::PCompilerSet newSet = pSettings->compilerSets().addSet(set);
+        newSet->setName(name);
+        set->setPersistInAutoFind(true);
+        pSettings->compilerSets().setDefaultIndex(pSettings->compilerSets().size()-1);
+        doLoad();
+    }
+}
+
 void CompilerSetOptionWidget::on_btnRenameCompilerSet_clicked()
 {
     Settings::PCompilerSet set=pSettings->compilerSets().getSet(ui->cbCompilerSet->currentIndex());
@@ -362,6 +396,7 @@ void CompilerSetOptionWidget::on_btnRenameCompilerSet_clicked()
         return;
     QString name = QInputDialog::getText(this,tr("Compiler Set Name"),tr("New name"),QLineEdit::Normal,
                                          set->name());
+    name = name.trimmed();
     if (!name.isEmpty())
         set->setName(name);
     doLoad();
@@ -387,6 +422,7 @@ void CompilerSetOptionWidget::updateIcons(const QSize& /*size*/)
     pIconsManager->setIcon(ui->btnFindCompilers, IconsManager::ACTION_EDIT_SEARCH);
     pIconsManager->setIcon(ui->btnAddCompilerSetByFolder, IconsManager::ACTION_FILE_OPEN_FOLDER);
     pIconsManager->setIcon(ui->btnAddCompilerSetByFile, IconsManager::ACTION_FILE_LOCATE);
+    pIconsManager->setIcon(ui->btnCopyCompilerSet, IconsManager::ACTION_EDIT_COPY);
     pIconsManager->setIcon(ui->btnAddBlankCompilerSet, IconsManager::ACTION_MISC_ADD);
     pIconsManager->setIcon(ui->btnRemoveCompilerSet, IconsManager::ACTION_MISC_REMOVE);
     pIconsManager->setIcon(ui->btnRenameCompilerSet, IconsManager::ACTION_MISC_RENAME);
@@ -397,6 +433,12 @@ void CompilerSetOptionWidget::updateIcons(const QSize& /*size*/)
     pIconsManager->setIcon(ui->btnChooseGDBServer, IconsManager::ACTION_FILE_LOCATE);
     pIconsManager->setIcon(ui->btnChooseMake, IconsManager::ACTION_FILE_LOCATE);
     pIconsManager->setIcon(ui->btnChooseResourceCompiler, IconsManager::ACTION_FILE_LOCATE);
+
+    for(int i=0;i<ui->cbCompilerSet->count();i++) {
+        if (!ui->cbCompilerSet->itemIcon(i).isNull()) {
+            ui->cbCompilerSet->setItemIcon(i, pIconsManager->getIcon(IconsManager::ACTION_MISC_CROSS));
+        }
+    }
 }
 
 void CompilerSetOptionWidget::on_cbEncoding_currentTextChanged(const QString &/*arg1*/)

@@ -17,8 +17,21 @@ Red Panda C++ Version 3.2
   - enhancement: Ctrl+Drag/Drop to copy contents.
   - enhancement: Don't display big input data file for problem cases. 
   - fix: Can't switch to RedPanda-Cpp  by clicking on the application title bar when the options dialog is open.
-  
-
+  - fix: Drag&Drop folder to IDE should be prohibited.
+  - fix: After dragging IDE to another screen that don't have the same DPI with the previous one, icon size are not correct.
+  - enhancement: Add copy compiler set tools button in the options dialog / compiler set panel.
+  - fix: Functions in seperate editing files all displayed in the function prototype list.
+  - enhancement: When debugging and the current stop position is not in source files, auto focus to the stack trace panel.
+  - enhancement: Adjust margin of the Search/Replace Dialog.
+  - enhancement: When Search/Replace invoked, auto focus the find inputbox. 
+  - fix: Problem case limit settings not correctly loaded.
+  - fix: Edit and switch editor out quickly may leave function tip wrongly appeared.
+  - fix: The function parameters' order in the generated doxygen doclet is wrong.
+  - enhancement: If current compiler set's compiler / debugger / make path is wrong, show a warning message box.
+  - enhancement: Display a cross before compiler set that has errors in compiler / debugger / make path.
+  - enhancement: Display a warning message if no compiler set is found at the first time RedPanda C++ runs.
+  - fix: Can't find the single word if the caret is inside it.
+  - fix: Search Dialog always returns to center each time starting a search.
 
 Red Panda C++ Version 3.1
 

@@ -16,7 +16,7 @@ namespace QSynedit {
     }
 
     int CppFormatter::calcIndentSpaces(int line, const QString &lineText, bool addIndent,
-                                              QSynEdit *editor)
+                                              const QSynEdit *editor)
     {
         Q_ASSERT(editor!=nullptr);
         line = std::min(line, editor->lineCount()+1);
@@ -41,6 +41,22 @@ namespace QSynedit {
             SyntaxState rangePreceeding = editor->document()->getSyntaxState(startLine-1);
             if (rangePreceeding.state == CppSyntaxer::RangeState::rsRawStringNotEscaping)
                 return 0;
+
+            // } can't find the correct indent , if autoindent for ( is handled here.
+            // We need to find a way to find the correct start line of { (
+            // if (rangePreceeding.getLastIndentType() == IndentType::Parenthesis) {
+            //     bool lastLineHasLastParentheis = true;
+            //     if (startLine > 1) {
+            //         SyntaxState synState = editor->document()->getSyntaxState(startLine - 2);
+            //         lastLineHasLastParentheis = rangePreceeding.parenthesisLevel > synState.parenthesisLevel;
+            //     }
+            //     if (lastLineHasLastParentheis) {
+            //         indentSpaces = findLastParenthesis(startLine, editor);
+            //         if (addIndent)
+            //             indentSpaces += 1;
+            //     }
+            //     return indentSpaces;
+            // }
             if (addIndent) {
     //            QString trimmedS = s.trimmed();
                 QString trimmedLineText = lineText.trimmed();
@@ -121,7 +137,7 @@ namespace QSynedit {
         return std::max(0,indentSpaces);
     }
 
-    int CppFormatter::findCommentStartLine(int searchStartLine, QSynEdit* editor)
+    int CppFormatter::findCommentStartLine(int searchStartLine, const QSynEdit* editor)
     {
         int commentStartLine = searchStartLine;
         SyntaxState range;
@@ -141,4 +157,23 @@ namespace QSynedit {
     void CppFormatter::doInitOptions()
     {
     }
+
+    // int CppFormatter::findLastParenthesis(int line, const QSynEdit *editor)
+    // {
+    //     if (line == 1)
+    //         editor->syntaxer()->resetState();
+    //     else {
+    //         SyntaxState rangeState = editor->document()->getSyntaxState(line-2);
+    //         editor->syntaxer()->setState(rangeState);
+    //     }
+    //     editor->syntaxer()->setLine(editor->lineText(line),line);
+    //     int pos = 0;
+    //     while (!editor->syntaxer()->eol()) {
+    //         if (editor->syntaxer()->getTokenAttribute() == editor->syntaxer()->symbolAttribute()
+    //             && editor->syntaxer()->getToken() == "(")
+    //             pos = editor->syntaxer()->getTokenPos();
+    //         editor->syntaxer()->next();
+    //     }
+    //     return pos;
+    // }
 }

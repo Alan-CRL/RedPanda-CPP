@@ -76,8 +76,8 @@
 #include "widgets/newclassdialog.h"
 #include "widgets/newheaderdialog.h"
 #ifdef ENABLE_LUA_ADDON
-#include "addon/executor.h"
-#include "addon/runtime.h"
+#include "addon/luaexecutor.h"
+#include "addon/luaruntime.h"
 #endif
 #ifdef ENABLE_VCS
 #include "vcs/gitmanager.h"
@@ -1163,16 +1163,19 @@ void MainWindow::setActiveBreakpoint(QString fileName, int Line, bool setFocus)
             activateWindow();
         }
     } else {
+        showHideMessagesTab(ui->tabDebug, true);
+        ui->debugViews->setCurrentWidget(ui->tabStackTrace);
+        ui->debugViews->setFocus();
+    // ui->tblStackTrace->selectRow(0);
     //   showCPUInfoDialog();
     }
     return;
 }
 
-void MainWindow::updateDPI(int oldDPI, int /*newDPI*/)
+void MainWindow::updateDPI(int oldDPI, int newDPI)
 {
-    //applySettings();
-    if (oldDPI<1)
-        oldDPI = 1;
+    Q_UNUSED(oldDPI)
+    Q_UNUSED(newDPI)
 }
 
 void MainWindow::onFileSaved(const QString &path, bool inProject)
@@ -1288,7 +1291,8 @@ void MainWindow::executeTool(PToolItem item)
 
 int MainWindow::calIconSize(const QString &fontName, int fontPointSize)
 {
-    QFont font(fontName,fontPointSize);
+    QFont font(fontName);
+    font.setPixelSize(pointToPixel(fontPointSize));
     QFontMetrics metrics(font);
     return metrics.ascent();
 }
@@ -1704,6 +1708,9 @@ Editor* MainWindow::openFile(QString filename, bool activate, QTabWidget* page)
         return nullptr;
 
     QFileInfo info=QFileInfo(filename);
+    if (info.isDir())
+        return nullptr;
+
     if (info.isAbsolute())
         filename = info.absoluteFilePath();
 
@@ -1907,8 +1914,13 @@ void MainWindow::updateCompilerSet(const Editor *e)
 {
     mCompilerSet->blockSignals(true);
     mCompilerSet->clear();
+    QIcon errorIcon = pIconsManager->getIcon(IconsManager::ACTION_MISC_CROSS);
     for (size_t i=0;i<pSettings->compilerSets().size();i++) {
-        mCompilerSet->addItem(pSettings->compilerSets().getSet(i)->name());
+        Settings::PCompilerSet set=pSettings->compilerSets().getSet(i);
+        if (set->findErrors().isEmpty())
+            mCompilerSet->addItem(set->name());
+        else
+            mCompilerSet->addItem(errorIcon, set->name());
     }
     int index=pSettings->compilerSets().defaultIndex();
     if (mProject) {
@@ -1973,6 +1985,12 @@ void MainWindow::updateActionIcons()
     }
     for (QToolButton* btn: ui->panelProblemCaseInfo->findChildren<QToolButton *>()) {
         btn->setIconSize(iconSize);
+    }
+
+    for(int i=0;i<mCompilerSet->count();i++) {
+        if (!mCompilerSet->itemIcon(i).isNull()) {
+            mCompilerSet->setItemIcon(i, pIconsManager->getIcon(IconsManager::ACTION_MISC_CROSS));
+        }
     }
 
     ui->tabExplorer->setIconSize(iconSize);
@@ -5754,6 +5772,7 @@ void MainWindow::showEvent(QShowEvent *)
     ui->tabMessages->setCurrentIndex(settings.bottomPanelIndex());
     ui->tabExplorer->setCurrentIndex(settings.leftPanelIndex());
     ui->debugViews->setCurrentIndex(settings.debugPanelIndex());
+    validateCompilerSet(pSettings->compilerSets().defaultIndex());
 }
 
 void MainWindow::hideEvent(QHideEvent *)
@@ -5858,6 +5877,7 @@ void MainWindow::onCompilerSetChanged(int index)
     pSettings->compilerSets().saveDefaultIndex();
 
     reparseNonProjectEditors();
+    validateCompilerSet(index);
 }
 
 void MainWindow::logToolsOutput(const QString& msg)
@@ -6601,7 +6621,8 @@ void MainWindow::on_actionFind_triggered()
     Editor *e = mEditorList->getEditor();
     if (!e)
         return;
-    hideAllSearchDialogs();
+    if (mSearchInFilesDialog)
+        mSearchInFilesDialog->hide();
     prepareSearchDialog();
     if (e->selAvail())
         mSearchDialog->find(e->selText());
@@ -6611,7 +6632,8 @@ void MainWindow::on_actionFind_triggered()
 
 void MainWindow::on_actionFind_in_files_triggered()
 {
-    hideAllSearchDialogs();
+    if (mSearchDialog)
+        mSearchDialog->hide();
     prepareSearchInFilesDialog();
     Editor *e = mEditorList->getEditor();
     if (e) {
@@ -6630,7 +6652,8 @@ void MainWindow::on_actionReplace_triggered()
     if (!e)
         return;
 
-    hideAllSearchDialogs();
+    if (mSearchInFilesDialog)
+        mSearchInFilesDialog->hide();
     prepareSearchDialog();
     if (e->selAvail())
         mSearchDialog->replace(e->selText());
@@ -7845,6 +7868,23 @@ void MainWindow::backupMenuForEditor(QMenu *menu, QList<QAction *> &backup)
             [menu] {
         menu->clear();
     });
+}
+
+void MainWindow::validateCompilerSet(int index)
+{
+    Settings::PCompilerSet set = pSettings->compilerSets().getSet(index);
+    if (set) {
+        QStringList errors = set->findErrors();
+        if (!errors.isEmpty()) {
+            mCompilerSet->setItemIcon(index, pIconsManager->getIcon(IconsManager::ACTION_MISC_CROSS));
+            QMessageBox::warning(this,
+                                 tr("Error in Compiler Set"),
+                                 tr("Current Compiler set has the following critical error: \n\n")
+                                 +errors.join("\n"));
+        } else {
+            mCompilerSet->setItemIcon(index, QIcon());
+        }
+    }
 }
 
 void MainWindow::setupSlotsForProject()

@@ -1398,6 +1398,8 @@ public:
         const QString &debugServer() const;
         void setDebugServer(const QString &newDebugServer);
 
+        QStringList findErrors();
+
         QStringList& binDirs();
         QStringList& CIncludeDirs();
         QStringList& CppIncludeDirs();
@@ -1551,6 +1553,7 @@ public:
     public:
         explicit CompilerSets(Settings* settings);
         PCompilerSet addSet();
+        PCompilerSet addSet(const PCompilerSet &pSet);
         bool addSets(const QString& folder);
         bool addSets(const QString& folder, const QString& c_prog);
         CompilerSetList clearSets();
@@ -1572,7 +1575,6 @@ public:
         static bool isTarget64Bit(const QString &target);
     private:
         PCompilerSet addSet(const QString& folder, const QString& c_prog);
-        PCompilerSet addSet(const PCompilerSet &pSet);
         PCompilerSet addSet(const QJsonObject &set);
         void savePath(const QString& name, const QString& path);
         void savePathList(const QString& name, const QStringList& pathList);

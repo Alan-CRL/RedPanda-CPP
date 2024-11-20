@@ -54,16 +54,16 @@ SearchInFileDialog::~SearchInFileDialog()
 
 void SearchInFileDialog::findInFiles(const QString &text)
 {
-    if (!text.isEmpty())
-        ui->cbFind->setCurrentText(text);
-    ui->btnExecute->setFocus();
+    setComboTextAndHistory(ui->cbFind,text,mSearchKeys);
+    ui->cbFind->setFocus();
     show();
+    activateWindow();
 }
 
 void SearchInFileDialog::findInFiles(const QString &keyword, SearchFileScope scope, QSynedit::SearchOptions options, const QString& folder, const QString& filters, bool searchSubfolders)
 {
-    ui->cbFind->setCurrentText(keyword);
-    ui->btnExecute->setFocus();
+    setComboTextAndHistory(ui->cbFind,keyword,mSearchKeys);
+    ui->cbFind->setFocus();
 
     switch(scope) {
     case SearchFileScope::currentFile:
@@ -87,6 +87,7 @@ void SearchInFileDialog::findInFiles(const QString &keyword, SearchFileScope sco
     ui->chkCaseSensetive->setChecked(options.testFlag(QSynedit::ssoMatchCase));
     ui->chkWholeWord->setChecked(options.testFlag(QSynedit::ssoWholeWord));
     show();
+    activateWindow();
 }
 
 void SearchInFileDialog::on_cbFind_currentTextChanged(const QString &value)
@@ -107,7 +108,7 @@ void SearchInFileDialog::on_btnExecute_clicked()
 
 void SearchInFileDialog::doSearch(bool replace)
 {
-    saveComboHistory(ui->cbFind,ui->cbFind->currentText());
+    updateComboHistory(mSearchKeys, ui->cbFind->currentText());
 
     mSearchOptions&=0;
 

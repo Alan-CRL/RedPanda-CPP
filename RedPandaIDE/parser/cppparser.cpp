@@ -618,6 +618,32 @@ PStatement CppParser::findAliasedStatement(const PStatement &statement) const
     return doFindAliasedStatement(statement);
 }
 
+QStringList CppParser::getFunctionParameterNames(const PStatement &statement) const
+{
+    QStringList result;
+    if (!statement)
+        return result;
+    if (statement->kind != StatementKind::Function
+            && statement->kind != StatementKind::Constructor
+            && statement->kind != StatementKind::Destructor )
+        return result;
+    QSet<QString> parameters;
+    foreach (const PStatement &child , statement->children) {
+        if (child->kind == StatementKind::Parameter)
+            parameters.insert(child->command);
+    }
+    if (parameters.isEmpty())
+        return result;
+    QStringList lst = splitExpression(statement->args);
+    foreach (const QString& term, lst) {
+        if (parameters.contains(term)) {
+            result.append(term);
+            parameters.remove(term);
+        }
+    }
+    return result;
+}
+
 QList<PStatement> CppParser::listTypeStatements(const QString &fileName, int line) const
 {
     QMutexLocker locker(&mMutex);
@@ -4512,8 +4538,8 @@ void CppParser::internalParse(const QString &fileName)
     handleInheritances();
     //    qDebug()<<"parse"<<timer.elapsed();
 #ifdef QT_DEBUG
-       // mStatementList.dumpAll(QString("z:\\all-stats-%1.txt").arg(extractFileName(fileName)));
-       // mStatementList.dump(QString("z:\\stats-%1.txt").arg(extractFileName(fileName)));
+    //   mStatementList.dumpAll(QString("z:\\all-stats-%1.txt").arg(extractFileName(fileName)));
+    //   mStatementList.dump(QString("z:\\stats-%1.txt").arg(extractFileName(fileName)));
 #endif
     //reduce memory usage
     internalClear();
@@ -4575,7 +4601,7 @@ QList<PStatement> CppParser::getListOfFunctions(const QString &fileName, int lin
         if (statement->command == child->command) {
             if (child->kind == StatementKind::Alias)
                 continue;
-            if (!includedFiles.contains(fileName))
+            if (!includedFiles.contains(child->fileName))
                 continue;
             if (line < child->line && (child->fileName == fileName))
                 continue;

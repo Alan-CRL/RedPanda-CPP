@@ -242,9 +242,9 @@ SOURCES += \
 
 HEADERS += \
     SimpleIni.h \
-    addon/api.h \
-    addon/executor.h \
-    addon/runtime.h \
+    addon/luaapi.h \
+    addon/luaexecutor.h \
+    addon/luaruntime.h \
     autolinkmanager.h \
     caretlist.h \
     codesnippetsmanager.h \
@@ -451,14 +451,14 @@ ENABLE_LUA_ADDON {
     DEFINES += ENABLE_LUA_ADDON
 
     SOURCES += \
-        addon/api.cpp \
-        addon/executor.cpp \
-        addon/runtime.cpp
+    addon/luaapi.cpp \
+    addon/luaexecutor.cpp \
+    addon/luaruntime.cpp
 
     HEADERS += \
-        addon/api.h \
-        addon/executor.h \
-        addon/runtime.h
+    addon/luaapi.h \
+    addon/luaexecutor.h \
+    addon/luaruntime.h
 }
 
 ENABLE_VCS {
@@ -526,8 +526,9 @@ linux: {
     # legacy glibc compatibility -- modern Unices have all components in `libc.so`
     LIBS += -lrt -ldl
 
-    _LINUX_STATIC_IME_PLUGIN = $$(LINUX_STATIC_IME_PLUGIN)
-    equals(_LINUX_STATIC_IME_PLUGIN, "ON") {
+    qtConfig(static) {
+        QTPLUGIN.platforms += qxcb qwayland-generic
+
         SOURCES += \
             resources/linux_static_ime_plugin.cpp
         QTPLUGIN.platforminputcontexts += \
